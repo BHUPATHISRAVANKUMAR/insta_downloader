@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Media Downloader</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Instagram Post Downloader</h1>
+
+        <div class="input-container">
+            <input type="text" id="instagram_url" placeholder="Paste Instagram post URL here...">
+            <button class="paste" onclick="pasteFromClipboard()">Paste</button>
+            <button class="download" onclick="fetchMedia()">Download</button>
+        </div>
+
+        <div id="media-preview" style="display: none;">
+            <div id="preview-container"></div>
+            <button class="download" id="download-btn" onclick="downloadMedia()">Download Media</button>
+            <button class="download-another" onclick="resetCycle()">Download Another Media</button>
+        </div>
+
+        <div class="instructions">
+            <h2>How to Use:</h2>
+            <ol>
+                <li>Copy the Instagram post URL containing the video or image.</li>
+                <li>Paste the URL into the input field above or click "Paste" if you've copied it.</li>
+                <li>Click "Download" to preview the media.</li>
+                <li>Once the media is previewed, click "Download Media" to save it locally.</li>
+                <li>To download another media, click "Download Another Media" and repeat the process.</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function fetchMedia() {
+            const url = document.getElementById("instagram_url").value;
+            if (!url) return alert("Please enter a URL.");
+
+            const response = await fetch("/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ instagram_url: url })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                alert(data.error);
+            } else {
+                document.getElementById("media-preview").style.display = "block";
+                const previewContainer = document.getElementById("preview-container");
+                previewContainer.innerHTML = "";
+
+                if (data.media_type === "video/mp4") {
+                    const video = document.createElement("video");
+                    video.src = data.media_url;
+                    video.controls = true;
+                    video.style.width = "100%";
+                    video.setAttribute("data-filename", data.filename);
+                    previewContainer.appendChild(video);
+                } else if (data.media_type === "image/jpeg") {
+                    const img = document.createElement("img");
+                    img.src = data.media_url;
+                    img.style.width = "100%";
+                    img.setAttribute("data-filename", data.filename);
+                    previewContainer.appendChild(img);
+                }
+            }
+        }
+
+        function downloadMedia() {
+            const mediaElement = document.querySelector("#preview-container video, #preview-container img");
+            const filename = mediaElement.getAttribute("data-filename");
+            window.location.href = `/download/${filename}`;
+        }
+
+        function resetCycle() {
+            document.getElementById("instagram_url").value = "";
+            document.getElementById("media-preview").style.display = "none";
+        }
+
+        function pasteFromClipboard() {
+            navigator.clipboard.readText().then(text => {
+                document.getElementById("instagram_url").value = text;
+            });
+        }
+    </script>
+</body>
+</html>
